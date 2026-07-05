@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List,Optional
 
 from sqlalchemy import String, Boolean, DateTime, Enum as SAEnum, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from app.models.booking import Booking
     from app.models.review import Review
     from app.models.token import RefreshToken, PasswordResetToken
+    from app.models.space import Space
 
 
 class UserRole(str, enum.Enum):
@@ -33,6 +34,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    owned_spaces: Mapped[List["Space"]] = relationship(back_populates="owner")
     bookings: Mapped[List["Booking"]] = relationship(back_populates="user")
     reviews: Mapped[List["Review"]] = relationship(back_populates="user")
     refresh_tokens: Mapped[List["RefreshToken"]] = relationship(back_populates="user")

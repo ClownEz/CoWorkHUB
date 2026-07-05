@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import engine, Base
@@ -34,7 +35,10 @@ app.add_middleware(
 
 app.include_router(spaces.router)
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+

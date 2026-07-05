@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List,Optional
 
 from sqlalchemy import (
     Table, Column, Integer, String, Text, Boolean,
@@ -13,6 +13,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.booking import Booking
     from app.models.review import Review
+    from app.models.user import User
 
 
 class SpaceType(str, enum.Enum):
@@ -43,6 +44,8 @@ class Space(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    owner_id : Mapped[int | None] = mapped_column(Integer,ForeignKey("users.id"),nullable=True)
+    owner : Mapped[Optional["User"]] = relationship(back_populates="owned_spaces")
     amenities: Mapped[List["Amenity"]] = relationship(secondary=space_amenities, back_populates="spaces")
     images: Mapped[List["SpaceImage"]] = relationship(back_populates="space")
     bookings: Mapped[List["Booking"]] = relationship(back_populates="space")
