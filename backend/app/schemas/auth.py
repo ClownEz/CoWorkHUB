@@ -22,7 +22,7 @@ class RefreshRequest(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    email: str
+    email: EmailStr
     full_name: str
     role: UserRole
     is_active: bool
@@ -33,3 +33,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     user: UserOut
+
+class VerifyRequest(BaseModel):
+    email : EmailStr
+    code : str
