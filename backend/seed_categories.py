@@ -1,6 +1,6 @@
 import asyncio
 
-from app.database import async_session, engine, Base
+from app.database import engine, Base
 from app.config import settings
 
 

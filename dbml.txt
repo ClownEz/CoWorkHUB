@@ -1,0 +1,108 @@
+
+Table users {
+  id integer [primary key]
+  email varchar [unique, not null]
+  password varchar [not null]
+  full_name varchar
+  role varchar [default: 'resident']
+  phone varchar
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table spaces {
+  id integer [primary key]
+  name varchar [not null]
+  type varchar [not null, note: 'meeting_room, hot_desk, office']
+  capacity integer [not null]
+  price_per_hour decimal [not null]
+  description text
+  address varchar
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table amenities {
+  id integer [primary key]
+  name varchar [unique, not null]
+  icon varchar
+}
+
+Table space_amenities {
+  space_id integer [not null]
+  amenity_id integer [not null]
+}
+
+Table space_images {
+  id integer [primary key]
+  space_id integer [not null]
+  url varchar [not null]
+  position integer [default: 0]
+  created_at timestamp
+}
+
+Table bookings {
+  id integer [primary key]
+  user_id integer [not null]
+  space_id integer [not null]
+  start_time timestamp [not null]
+  end_time timestamp [not null]
+  status varchar [default: 'pending', note: 'pending, confirmed, completed, cancelled']
+  total_price decimal [not null]
+  promo_code varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table payments {
+  id integer [primary key]
+  booking_id integer [not null]
+  amount decimal [not null]
+  status varchar [default: 'pending', note: 'pending, success, failed, refunded']
+  provider varchar
+  provider_payment_id varchar
+  paid_at timestamp
+  created_at timestamp
+}
+
+Table reviews {
+  id integer [primary key]
+  booking_id integer [unique, not null]
+  user_id integer [not null]
+  space_id integer [not null]
+  rating integer [not null, note: '1-5']
+  comment text
+  created_at timestamp
+}
+
+Table refresh_tokens {
+  id integer [primary key]
+  user_id integer [not null]
+  token varchar [unique, not null]
+  expires_at timestamp [not null]
+  is_revoked boolean [default: false]
+  created_at timestamp
+}
+
+Table password_reset_tokens {
+  id integer [primary key]
+  user_id integer [not null]
+  token varchar [unique, not null]
+  expires_at timestamp [not null]
+  used boolean [default: false]
+  created_at timestamp
+}
+
+Ref: space_amenities.space_id > spaces.id
+Ref: space_amenities.amenity_id > amenities.id
+Ref: space_images.space_id > spaces.id
+Ref: bookings.user_id > users.id
+Ref: bookings.space_id > spaces.id
+Ref: payments.booking_id > bookings.id
+Ref: reviews.booking_id > bookings.id
+Ref: reviews.user_id > users.id
+Ref: reviews.space_id > spaces.id
+Ref: refresh_tokens.user_id > users.id
+Ref: password_reset_tokens.user_id > users.id

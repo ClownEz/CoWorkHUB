@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
+from app.models import (User, Space, Amenity, SpaceImage, Booking, Payment, Review, RefreshToken, PasswordResetToken)
+from app.routers import spaces
 
 
 @asynccontextmanager
@@ -28,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(spaces.router)
 
 
 @app.get("/api/health")
