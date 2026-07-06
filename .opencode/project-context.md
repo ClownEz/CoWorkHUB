@@ -34,6 +34,9 @@
 | POST | /forgot_password | Отправить код сброса на email (неавторизован) | `{"msg": "Code is sent"}` |
 | POST | /reset_password | Отправить код смены на email (авторизован) | `{"msg": "Code is sent"}` |
 | POST | /reset_password/confirm | Принять код + новый пароль, сменить пароль | `{"msg": "Password changed"}` |
+| POST | /logout | Отозвать refresh-токен | (no content, 200) |
+| PATCH | /update_profile | Обновление full_name / phone | UserOut |
+| POST | /resend_code | Повторная отправка кода верификации | `{"msg": "Code is sent"}` |
 
 ### Spaces (`/api/spaces`) — Готово
 | Метод | Путь | Описание |
@@ -51,11 +54,6 @@
 | GET | /my | Мои spaces (admin — все, manager — свои) |
 
 ### Что НЕ сделано в бэкенде — план на завтра
-
-**Auth ручки:**
-1. **`POST /logout`** — отозвать refresh-токен на сервере
-2. **`PATCH /me`** — обновить профиль (full_name, phone)
-3. **`POST /resend-code`** — повторная отправка кода верификации
 
 **Spaces ручки:**
 4. **`POST /amenities`** — создать amenity (админ/менеджер)
@@ -78,6 +76,16 @@
 9. **Admin router** (`/api/admin`):
    - User management (список, смена роли, блокировка)
    - System settings
+
+### Схемы (Pydantic) — рефакторинг
+```
+schemas/
+  __init__.py
+  users.py     # UserOut, LoginRequest, RegisterRequest, UpdateProfileRequest
+  tokens.py    # TokenResponse, RefreshRequest, VerifyRequest, ForgotPasswordRequest, ResetPassword, ConfirmResetRequest
+  space.py     # SpaceOut, SpaceCreate, SpaceUpdate, AmenityOut, SpaceImageOut, AvailabilitySlotOut
+  booking.py   # BookingCreate, BookingOut, SpaceBriefOut
+```
 
 ### Баги
 - `dependincies.py:29` — `scalar_one_or_none` без `()` → `scalar_one_or_none()`
@@ -152,7 +160,6 @@
 2. **Register response**: бэк возвращает `{"message": "Verification code sent to email"}`, фронт ждёт `AuthResponse` → упадёт в `setAuth`.
 3. **Нет страницы verify-code**: после регистрации нужно показать форму ввода кода и вызвать `/auth/verify`.
 4. **Нет forgot-password / reset-password / change-password страниц**.
-5. **Нет logout на бэке** — фронт чистит localStorage, но бэк не отзывает токен.
 
 ## Коммиты (все локальны, не запушины)
 ```
