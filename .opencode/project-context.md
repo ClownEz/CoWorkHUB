@@ -1,43 +1,171 @@
-# CoWorkHUB — проект
+# CoWorkHUB — полная документация проекта
 
 ## Стек
-- Frontend: React 19 + TypeScript + Tailwind v4 + TanStack Query + Zustand + React Router
-- Backend: FastAPI + SQLAlchemy async (aiomysql) + MySQL + JWT (python-jose) + passlib[bcrypt]
+- **Frontend**: React 19, TypeScript, Vite 8, Tailwind CSS v4, React Router v7, TanStack Query v5, Zustand v5, Axios, react-hot-toast, dayjs, lucide-react
+- **Backend**: Python 3.14+, FastAPI 0.115, SQLAlchemy 2.0 (async, aiomysql), MySQL, Alembic
+- **Auth**: JWT (python-jose HS256), bcrypt (passlib), email verification
+- **Инфра (planned)**: Redis, Celery, WebSocket
 
-## Статус реализации Auth API
+## База данных (MySQL, localhost:3306, CoWorkHub)
 
-### ✅ Готово
-- `app/schemas/auth.py` — Pydantic схемы (LoginRequest, RegisterRequest, RefreshRequest, UserOut, TokenResponse)
-- `app/services/auth.py` — hash_password, verify_password, create_token, create_refresh_token, decode_token
-- `app/dependencies.py` — get_current_user (извлекает Bearer токен, декодит, ищет пользователя в БД)
+### Таблицы (все созданы через Alembic)
+| Таблица | Модель | Ключевые поля |
+|---|---|---|
+| users | user.py | id, email (unique), password, full_name, role (enum: guest/resident/manager/admin), phone, is_active, created_at, updated_at |
+| spaces | space.py | id, name, type (meeting_room/hot_desk/office), capacity, price_per_hour, description, address, is_active, owner_id (FK->users) |
+| amenities | space.py | id, name (unique), icon. M2M с spaces через space_amenities |
+| space_images | space.py | id, space_id (FK), url, position |
+| bookings | booking.py | id, user_id (FK), space_id (FK), start_time, end_time, status (pending/confirmed/completed/cancelled), total_price, promo_code |
+| payments | payment.py | id, booking_id (FK), amount, status (pending/success/failed/refunded), provider, provider_payment_id, paid_at |
+| reviews | review.py | id, booking_id (FK, unique), user_id (FK), space_id (FK), rating, comment |
+| refresh_tokens | token.py | id, user_id (FK), token (unique), expires_at, is_revoked |
+| password_reset_tokens | token.py | id, user_id (FK), token (unique), expires_at, used |
 
-### ⚠️ Не доделано в dependencies.py
-строка 29: `user = result.scalar_one_or_none` — не хватает `()` (должно быть `scalar_one_or_none()`)
+## Бэкенд — API эндпоинты
 
-### ⏭ Следующий шаг
-Написать `app/routers/auth.py` с эндпоинтами:
-- POST /api/auth/register
-- POST /api/auth/login
-- POST /api/auth/refresh
-- GET /api/auth/me
+### Auth (`/api/auth`) — Готово
+| Метод | Путь | Описание | Возвращает |
+|---|---|---|---|
+| POST | /register | Регистрация, отправка кода верификации на email | `{"message": "Verification code sent to email"}` |
+| POST | /login | Вход, проверка is_active | TokenResponse |
+| POST | /verify | Подтверждение email по коду | TokenResponse |
+| POST | /refresh | Ротация refresh-токена | TokenResponse |
+| GET | /me | Текущий пользователь (Bearer) | UserOut |
+| POST | /forgot_password | Отправить код сброса на email (неавторизован) | `{"msg": "Code is sent"}` |
+| POST | /reset_password | Отправить код смены на email (авторизован) | `{"msg": "Code is sent"}` |
+| POST | /reset_password/confirm | Принять код + новый пароль, сменить пароль | `{"msg": "Password changed"}` |
 
-### 📁 Структура бэкенда
-backend/
-  main.py                    # FastAPI app (нужно добавить include_router)
-  .env                       # DATABASE_URL, JWT_SECRET
-  requirements.txt
-  app/
-    config.py                # Settings
-    database.py              # engine, AsyncSessionLocal, get_db
-    models/
-      user.py                # User + UserRole
-      token.py               # RefreshToken, PasswordResetToken
-      booking.py, space.py, payment.py, review.py
-    schemas/
-      __init__.py
-      auth.py
-    services/
-      auth.py                # hash/verify/tokens
-    dependencies.py           # get_current_user
-    routers/                 # (создать)
-      auth.py
+### Spaces (`/api/spaces`) — Готово
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | / | Список spaces (фильтры: space_type, capacity, date) |
+| POST | / | Создание space (manager/admin) |
+| GET | /{id} | Детально (с amenities, images) |
+| PATCH | /{id} | Обновление (owner/manager/admin) |
+| DELETE | /{id} | Удаление (owner/manager/admin) |
+| GET | /{id}/availability | Проверка доступности по времени |
+| POST | /{id}/images | Загрузка изображения |
+| DELETE | /{id}/images/{image_id} | Удаление изображения |
+| GET | /{id}/reviews | Отзывы space |
+| GET | /amenities | Все amenities |
+| GET | /my | Мои spaces (admin — все, manager — свои) |
+
+### Что НЕ сделано в бэкенде — план на завтра
+
+**Auth ручки:**
+1. **`POST /logout`** — отозвать refresh-токен на сервере
+2. **`PATCH /me`** — обновить профиль (full_name, phone)
+3. **`POST /resend-code`** — повторная отправка кода верификации
+
+**Spaces ручки:**
+4. **`POST /amenities`** — создать amenity (админ/менеджер)
+5. **`POST /{id}/amenities`** — добавить amenity к space
+
+**Новые роутеры:**
+6. **Bookings router** (`/api/bookings`):
+   - `POST /` — создать бронь
+   - `GET /` — список броней (текущий юзер)
+   - `GET /{id}` — детали брони
+   - `PATCH /{id}/cancel` — отменить бронь
+
+7. **Payments router** (`/api/payments`):
+   - `POST /{bookingId}/create` — создать платёж
+
+8. **Reviews router** (`/api/reviews`):
+   - `POST /` — создать отзыв
+   - `GET /{spaceId}` — отзывы space (уже есть в spaces.py, продублировать?)
+
+9. **Admin router** (`/api/admin`):
+   - User management (список, смена роли, блокировка)
+   - System settings
+
+### Баги
+- `dependincies.py:29` — `scalar_one_or_none` без `()` → `scalar_one_or_none()`
+
+## Фронтенд — структура
+
+### Роутинг (App.tsx)
+```
+/login                     LoginPage
+/register                  RegisterPage
+
+(под MainLayout с Navbar):
+/                          HomePage
+/spaces                    SpacesListPage
+/spaces/:id                SpaceDetailPage
+
+(ProtectedRoute — любой auth):
+/bookings                  MyBookingsPage
+/bookings/:id              BookingDetailPage
+/payments/:bookingId       PaymentPage
+/profile                   ProfilePage
+/notifications             NotificationsPage
+
+(ProtectedRoute — manager/admin):
+/manager/*                 ManagerDashboard
+
+(ProtectedRoute — admin):
+/admin/*                   AdminPanel
+```
+
+### API слой (src/api/)
+| Файл | Сервис | Эндпоинты |
+|---|---|---|
+| client.ts | Axios instance | Bearer token, auto-refresh на 401, редирект на /login |
+| auth.ts | authApi | register, login, refresh, me |
+| spaces.ts | spacesApi | list, getById, getAvailability |
+| bookings.ts | bookingsApi | create, list, getById, cancel |
+| payments.ts | paymentsApi | create |
+
+### Состояние (Zustand + TanStack Query)
+- **authStore.ts**: user, isAuthenticated, setAuth, setUser, logout
+- **useAuth.ts**: useLogin, useRegister, useLogout
+- **useSpaces.ts**: useSpaces, useSpace, useAvailability
+- **useBookings.ts**: useBookings, useBooking, useCreateBooking, useCancelBooking
+
+### UI компоненты
+- Button (variants: primary/secondary/outline/ghost/danger, sizes: sm/md/lg, loading)
+- Input (label, error, ref)
+- Card + CardHeader + CardContent
+- Badge (StatusBadge, SpaceTypeBadge)
+- Navbar (sticky, role-based links)
+- ProtectedRoute (auth guard, optional role whitelist)
+
+### Страницы (все готовы)
+| Страница | Статус |
+|---|---|
+| HomePage | Герой, 3 feature cards, популярные spaces |
+| LoginPage | Форма email+password |
+| RegisterPage | Форма email+password+confirm |
+| SpacesListPage | Фильтры, skeleton, карточки |
+| SpaceDetailPage | Детали, виджет бронирования |
+| MyBookingsPage | Список броней, отмена |
+| BookingDetailPage | Детали брони, кнопка оплаты |
+| PaymentPage | Mock — редирект на /api/payments/{bookingId}/create |
+| ProfilePage | Инфо пользователя, logout |
+| ManagerDashboard | **Заглушка** (статы hardcoded, таблица spaces — placeholder) |
+| AdminPanel | **Заглушка** (4 карточки-навигации, activity log — placeholder) |
+| NotificationsPage | WebSocket клиент к /ws/notifications |
+
+### Несостыковки фронтенда с бэком
+1. **RegisterRequest**: фронт шлёт `{ email, password }`, бэк ждёт `{ email, password, full_name }`. Нет поля full_name на форме.
+2. **Register response**: бэк возвращает `{"message": "Verification code sent to email"}`, фронт ждёт `AuthResponse` → упадёт в `setAuth`.
+3. **Нет страницы verify-code**: после регистрации нужно показать форму ввода кода и вызвать `/auth/verify`.
+4. **Нет forgot-password / reset-password / change-password страниц**.
+5. **Нет logout на бэке** — фронт чистит localStorage, но бэк не отзывает токен.
+
+## Коммиты (все локальны, не запушины)
+```
+b58ef5d (HEAD -> main) make some auth routes
+f262f7d make all routers for spaces
+b0f6655 CRUD with auth models, DB schema, and frontend API layer
+556c6ea change sync to async
+41d657e Initial commit
+```
+
+## Переменные окружения
+Смотри `backend/.env`: DATABASE_URL, JWT_SECRET, SMTP настройки.
+
+## Запуск
+- Frontend: `npm run dev` (порт 3000, прокси `/api` → :8000, `/ws` → ws)
+- Backend: `uvicorn app.main:app --reload` (порт 8000)

@@ -37,3 +37,19 @@ class TokenResponse(BaseModel):
 class VerifyRequest(BaseModel):
     email : EmailStr
     code : str
+
+class ForgotPasswordRequest(BaseModel):
+    email : EmailStr
+
+class ResetPassword(BaseModel):
+    email : EmailStr
+    code : str
+    new_password : str
+
+class ConfirmResetRequest(BaseModel):
+    code: str
+    new_password: str
+
+class UpdateProfileRequest(BaseModel):
+    full_name : str | None = None
+    phone : str | None = None

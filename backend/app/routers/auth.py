@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends,HTTPException,Query,File
-from sqlalchemy import select
+from sqlalchemy import select,update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError
@@ -7,7 +7,8 @@ from datetime import datetime,timezone,timedelta
 from app.dependincies import get_current_user
 from app.database import get_db
 
-from app.schemas.auth import UserOut, UserRole,LoginRequest,RegisterRequest,TokenResponse,VerifyRequest,RefreshRequest
+from app.schemas.users import UserOut, UserRole, LoginRequest, RegisterRequest, UpdateProfileRequest
+from app.schemas.tokens import TokenResponse, VerifyRequest, RefreshRequest, ForgotPasswordRequest, ResetPassword, ConfirmResetRequest
 from app.models.user import User
 from app.services.auth import hash_password,create_token,create_refresh_token,decode_token,verify_password
 from app.services.email import send_verification_code
@@ -132,4 +133,80 @@ async def refresh_token(body : RefreshRequest,db : AsyncSession = Depends(get_db
 @router.get("/me",response_model=UserOut)
 async def get_user(current_user : User = Depends(get_current_user)):
 	return UserOut.model_validate(current_user)
+
+@router.post("/forgot_password")
+async def forgot_password(body : ForgotPasswordRequest,db : AsyncSession = Depends(get_db)):
+	result = await db.execute(select(User).where(User.email == body.email))
+	user = result.scalar_one_or_none()
+	if not user :
+		raise HTTPException(status_code=404,detail="User isn't found")
+	code = send_verification_code(user.email)
+	db_code = PasswordResetToken(
+		user_id = user.id,
+		token = code,
+		expires_at = datetime.now(timezone.utc)+timedelta(minutes=15)
+	)
+	db.add(db_code)
+	await db.commit()
+	return {"msg" : "Code is sent"}
+
+@router.post("/reset_password")
+async def password_reset(body : ResetPassword,current_user : User = Depends(get_current_user),db : AsyncSession = Depends(get_db)):
+	code = send_verification_code(current_user.email)
+	db_code = PasswordResetToken(
+		user_id = current_user.id,
+		token = code,
+		expires_at = datetime.now(timezone.utc)+timedelta(minutes=15)
+	)
+	db.add(db_code)
+	await db.commit()
+	return {"msg" : "Code is sent"}
+
+@router.post("/reset_password/confirm")
+async def confirm_reset(body:ConfirmResetRequest,current_user : User = Depends(get_current_user), db:AsyncSession = Depends(get_db)):
+	result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.user_id == current_user.id,PasswordResetToken.token == body.code,PasswordResetToken.used == False))
+	token = result.scalar_one_or_none()
+	if not token:
+		raise HTTPException(400,"Invalid or expired token")
+	if token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+		raise HTTPException(400,"Token has expired")
+	current_user.password = hash_password(body.new_password)
+	token.used = True
+	await db.execute(update(RefreshToken).where(RefreshToken.user_id == current_user.id,RefreshToken.is_revoked == False).values(is_revoked = True))
+	await db.commit()
+	return {"msg":"Password changed"}
+
+@router.post("/logout")
+async def logout(body:RefreshRequest,db : AsyncSession = Depends(get_db)):
+	result = await db.execute(select(RefreshToken).where(RefreshToken.token == body.refresh_token,RefreshToken.is_revoked == False))
+	token = result.scalar_one_or_none()
+	if not token:
+		raise HTTPException(401,"Token not found")
+	token.is_revoked = True
+	await db.commit()
+
+@router.patch("/update_profile",response_model=UserOut)
+async def update_profile(body : UpdateProfileRequest,current_user : User = Depends(get_current_user),db : AsyncSession = Depends(get_db)):
+	if body.full_name is not None:
+		current_user.full_name = body.full_name
+	if body.phone is not None :
+		current_user.phone = body.phone
+	await db.commit()
+	return UserOut.model_validate(current_user)
+
+@router.post("/resend_code")
+async def resend_code (body : ForgotPasswordRequest,db : AsyncSession = Depends(get_db)):
+	result = await db.execute(select(User).where(User.email == body.email))
+	user = result.scalar_one_or_none()
+	if not user:
+		raise HTTPException(401,"User is not found")
+	code = send_verification_code(user.email)
+	db_code = PasswordResetToken(
+		user_id = user.id,
+		token = code,
+		expires_at = datetime(timezone.utc) + timedelta(15)
+	)
+	db.add(db_code)
+	await db.commit()
+	return {"msg" : "code is sent"}
 

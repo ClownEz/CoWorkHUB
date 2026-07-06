@@ -69,7 +69,7 @@ async def get_available_rooms(
 	return [AvailabilitySlotOut(start_time=from_time,end_time=to_time,available=overlap is None)]
 
 @router.get("/{space_id}",response_model=SpaceOut)
-async def get_your_space (space_id : int,db:AsyncSession = Depends(get_db)):
+async def get_space (space_id : int,db:AsyncSession = Depends(get_db)):
 	searched = await db.execute(select(Space).where(Space.id == space_id).options(selectinload(Space.amenities),selectinload(Space.images)))
 	space = searched.scalar_one_or_none()
 	if not space :
