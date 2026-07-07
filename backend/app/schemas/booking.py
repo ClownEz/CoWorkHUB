@@ -17,7 +17,7 @@ class SpaceBriefOut(BaseModel):
     price_per_hour: float
 
     class Config:
-        from_atributes = True
+        from_attributes = True
 
 
 class BookingOut(BaseModel):

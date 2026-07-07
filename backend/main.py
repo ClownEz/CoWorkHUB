@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import engine, Base
 from app.models import (User, Space, Amenity, SpaceImage, Booking, Payment, Review, RefreshToken, PasswordResetToken)
-from app.routers import spaces
+from app.routers import spaces, auth,booking
 
 
 @asynccontextmanager
@@ -33,8 +33,9 @@ app.add_middleware(
 )
 
 
+app.include_router(auth.router)
 app.include_router(spaces.router)
-
+app.include_router(booking.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

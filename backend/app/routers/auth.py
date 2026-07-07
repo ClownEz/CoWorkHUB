@@ -204,7 +204,7 @@ async def resend_code (body : ForgotPasswordRequest,db : AsyncSession = Depends(
 	db_code = PasswordResetToken(
 		user_id = user.id,
 		token = code,
-		expires_at = datetime(timezone.utc) + timedelta(15)
+		expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
 	)
 	db.add(db_code)
 	await db.commit()

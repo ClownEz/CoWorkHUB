@@ -46,8 +46,8 @@ db: AsyncSession = Depends(get_db)):
 		raise HTTPException(status_code=403, detail="Only manager or admin can create spaces")
 	space = Space(**body.model_dump(exclude={"amenity_ids"}),owner_id = current_user.id)
 	if body.amenity_ids:
-		amenties = await db.execute(select(Amenity).where(Amenity.id.in_(body.amenity_ids)))
-		space.amenities = list(amenties.scalars().all())
+		amenities = await db.execute(select(Amenity).where(Amenity.id.in_(body.amenity_ids)))
+		space.amenities = list(amenities.scalars().all())
 	db.add(space)
 	await db.commit()
 	await db.refresh(space)
@@ -73,7 +73,7 @@ async def get_space (space_id : int,db:AsyncSession = Depends(get_db)):
 	searched = await db.execute(select(Space).where(Space.id == space_id).options(selectinload(Space.amenities),selectinload(Space.images)))
 	space = searched.scalar_one_or_none()
 	if not space :
-		raise HTTPException(status_code=404,detail="Space not founded")
+		raise HTTPException(status_code=404,detail="Space not found")
 	return space
 @router.patch("/{space_id}", response_model=SpaceOut)
 async def update_space(

@@ -18,7 +18,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 	except JWTError:
 		raise HTTPException(status_code=401,detail="Invalid or expired Token")
 
-	user_id = payload.get("sub")
+	user_id = int(payload.get("sub"))
 	if user_id is None:
 		raise HTTPException(
 			status_code=401,

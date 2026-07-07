@@ -23,7 +23,7 @@
 
 ## Бэкенд — API эндпоинты
 
-### Auth (`/api/auth`) — Готово
+### Auth (`/api/auth`) — Готово ✅ (зарегистрирован в main.py)
 | Метод | Путь | Описание | Возвращает |
 |---|---|---|---|
 | POST | /register | Регистрация, отправка кода верификации на email | `{"message": "Verification code sent to email"}` |
@@ -53,31 +53,23 @@
 | GET | /amenities | Все amenities |
 | GET | /my | Мои spaces (admin — все, manager — свои) |
 
-### Что НЕ сделано в бэкенде — план на завтра
+### Что НЕ сделано в бэкенде
 
 **Spaces ручки:**
-4. **`POST /amenities`** — создать amenity (админ/менеджер)
-5. **`POST /{id}/amenities`** — добавить amenity к space
+- `POST /amenities` — создать amenity (админ/менеджер)
+- `POST /{id}/amenities` — добавить amenity к space
 
 **Новые роутеры:**
-6. **Bookings router** (`/api/bookings`):
-   - `POST /` — создать бронь
-   - `GET /` — список броней (текущий юзер)
-   - `GET /{id}` — детали брони
-   - `PATCH /{id}/cancel` — отменить бронь
+- **Bookings router** (`/api/bookings`): ✅ зарегистрирован в main.py
+  - `POST /` — ✅ создание брони (проверка space, пересечения, расчёт цены)
+  - `GET /{id}` — ✅ детали брони (с проверкой владельца)
+  - `GET /` — ❌ не сделано
+  - `PATCH /{id}/cancel` — ❌ не сделано
+- **Payments router** (`/api/payments`): не существует
+- **Reviews router** (`/api/reviews`): не существует
+- **Admin router** (`/api/admin`): не существует
 
-7. **Payments router** (`/api/payments`):
-   - `POST /{bookingId}/create` — создать платёж
-
-8. **Reviews router** (`/api/reviews`):
-   - `POST /` — создать отзыв
-   - `GET /{spaceId}` — отзывы space (уже есть в spaces.py, продублировать?)
-
-9. **Admin router** (`/api/admin`):
-   - User management (список, смена роли, блокировка)
-   - System settings
-
-### Схемы (Pydantic) — рефакторинг
+### Схемы (Pydantic)
 ```
 schemas/
   __init__.py
@@ -85,10 +77,13 @@ schemas/
   tokens.py    # TokenResponse, RefreshRequest, VerifyRequest, ForgotPasswordRequest, ResetPassword, ConfirmResetRequest
   space.py     # SpaceOut, SpaceCreate, SpaceUpdate, AmenityOut, SpaceImageOut, AvailabilitySlotOut
   booking.py   # BookingCreate, BookingOut, SpaceBriefOut
+  # auth.py удалён — дублировал users.py + tokens.py
 ```
 
-### Баги
-- `dependincies.py:29` — `scalar_one_or_none` без `()` → `scalar_one_or_none()`
+### Баги (все пофикшены)
+- ~~`dependincies.py:29` — `scalar_one_or_none` без `()` → `scalar_one_or_none()`~~ ✅ исправлено
+- ~~`dependincies.py:21` — `user_id` из JWT строка, не кастится в `int`~~ ✅ исправлено
+- ~~`auth.py:207` — `timedelta(15)` без `minutes=`~~ ✅ исправлено
 
 ## Фронтенд — структура
 
