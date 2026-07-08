@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models.booking import Booking,BookingStatus
 from app.models.space import Space
 from app.models.user import User
-from app.schemas.booking import BookingCreate,BookingOut,BookingStatus
+from app.schemas.booking import BookingCreate,BookingOut
 
 router = APIRouter(prefix="/api/bookings",tags="Booking")
 
@@ -55,5 +55,18 @@ async def get_book_by_id(id:int,db:AsyncSession = Depends(get_db),current_user:U
 	if not booking:
 		raise HTTPException(404,"Booking not found")
 	if booking.user_id != current_user.id and current_user.role != "admin" and booking.space.owner_id != current_user.id:
-		raise HTTPException(403,"Not enought permisshions")
+		raise HTTPException(403,"Not enough permissions")
 	return booking
+
+@router.patch("/{id}/cancel",response_model=BookingOut)
+async def cancel_booking(id:int , current_user : User = Depends(get_current_user),db : AsyncSession = Depends(get_db)):
+	result = await db.execute(select(Booking).where(Booking.id == id))
+	found = result.scalar_one_or_none()
+	if not found :
+		raise HTTPException(404,"Booking not found")
+	if found.user_id != current_user.id and current_user.role != "admin" and found.space.owner_id != current_user.id:
+		raise HTTPException(403,"Not enough permissions")
+	found.status = "cancelled"
+	await db.commit()
+	await db.refresh(found)
+	return found
