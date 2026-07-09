@@ -70,3 +70,13 @@ async def cancel_booking(id:int , current_user : User = Depends(get_current_user
 	await db.commit()
 	await db.refresh(found)
 	return found
+@router.get("/",response_model= list[BookingOut])
+async def get_all_bookings(current_user : User = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
+	if current_user.role == "admin":
+		result = await db.execute(select(Booking))
+	elif current_user.role == "manager":
+		result = await db.execute(select(Booking).join(Booking.space).where(Space.owner_id == current_user.id))
+	else :
+		result = await db.execute(select(Booking).where(Booking.user_id == current_user.id))
+	booking = result.scalars().all()
+	return booking

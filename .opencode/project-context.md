@@ -63,8 +63,8 @@
 - **Bookings router** (`/api/bookings`): ✅ зарегистрирован в main.py
   - `POST /` — ✅ создание брони (проверка space, пересечения, расчёт цены)
   - `GET /{id}` — ✅ детали брони (с проверкой владельца)
-  - `GET /` — ❌ не сделано
-  - `PATCH /{id}/cancel` — ❌ не сделано
+   - `GET /` — ✅ сделано (фильтр по роли: admin — все, manager — брони своих space, resident — свои)
+   - `PATCH /{id}/cancel` — ✅ сделано (проверка владельца брони/admin/owner space)
 - **Payments router** (`/api/payments`): не существует
 - **Reviews router** (`/api/reviews`): не существует
 - **Admin router** (`/api/admin`): не существует
