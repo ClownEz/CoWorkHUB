@@ -16,3 +16,4 @@ class PaymentOut(BaseModel):
     status: PaymentStatus
     provider: str | None
     created_at: datetime
+    client_secret: str | None = None

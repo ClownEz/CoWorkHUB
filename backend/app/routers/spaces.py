@@ -24,6 +24,8 @@ async def list_of_spaces(
 	space_type: SpaceType | None = None,
 	capacity: int | None = None,
 	date: str | None = None,
+	search : str | None = None,
+	sort : str | None = None,
 	db: AsyncSession = Depends(get_db),
 ):
 	conditions = [Space.is_active == True]
@@ -31,10 +33,20 @@ async def list_of_spaces(
 		conditions.append(Space.type == space_type)
 	if capacity :
 		conditions.append(Space.capacity >= capacity)
+	if search:
+		conditions.append(Space.name.contains(search))
+	if sort == "price_asc":
+		order = Space.price_per_hour.asc()
+	elif sort == "price_desc":
+		order = Space.price_per_hour.desc()
+	elif sort == "oldest":
+		order = Space.created_at.asc()
+	else :
+		order = Space.created_at.desc()
 	query = await db.execute(select(Space).
 	where(*conditions)
 	.options(selectinload(Space.amenities),selectinload(Space.images))
-	.order_by(Space.created_at.desc()))
+	.order_by(order))
 	spaces = query.scalars().all()
 	return spaces
 
@@ -50,8 +62,12 @@ db: AsyncSession = Depends(get_db)):
 		space.amenities = list(amenities.scalars().all())
 	db.add(space)
 	await db.commit()
-	await db.refresh(space)
-	return space
+	result = await db.execute(
+		select(Space)
+		.where(Space.id == space.id)
+		.options(selectinload(Space.amenities), selectinload(Space.images))
+	)
+	return result.scalar_one()
 
 @router.get("/{space_id}/availability",response_model=list[AvailabilitySlotOut])
 async def get_available_rooms(

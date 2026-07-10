@@ -24,5 +24,9 @@ class UserOut(BaseModel):
     email: EmailStr
     full_name: str
     role: UserRole
+    phone: str | None = None
+    avatar: str | None = None
     is_active: bool
     created_at: datetime
+
+    model_config = {"from_attributes": True}

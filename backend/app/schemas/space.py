@@ -7,14 +7,19 @@ class AmenityOut(BaseModel):
     name: str
     icon: str | None = None
 
+    model_config = {"from_attributes": True}
+
 
 class SpaceImageOut(BaseModel):
     id: int
     url: str
     position: int
 
+    model_config = {"from_attributes": True}
+
 
 class SpaceOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: int
     name: str
     type: SpaceType
@@ -54,3 +59,5 @@ class AvailabilitySlotOut(BaseModel):
     start_time : datetime
     end_time : datetime
     available : bool
+
+    model_config = {"from_attributes": True}

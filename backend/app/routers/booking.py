@@ -11,7 +11,7 @@ from app.models.space import Space
 from app.models.user import User
 from app.schemas.booking import BookingCreate,BookingOut
 
-router = APIRouter(prefix="/api/bookings",tags="Booking")
+router = APIRouter(prefix="/api/bookings",tags=["Booking"])
 
 @router.post("/",response_model=BookingOut)
 async def create_booking(body : BookingCreate,current_user: User = Depends(get_current_user),db: AsyncSession = Depends(get_db)):

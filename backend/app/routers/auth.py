@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends,HTTPException,Query,File
+from fastapi import APIRouter, Depends,HTTPException,Query,File,UploadFile
 from sqlalchemy import select,update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +6,8 @@ from jose import JWTError
 from datetime import datetime,timezone,timedelta
 from app.dependincies import get_current_user
 from app.database import get_db
+import os
+import aiofiles
 
 from app.schemas.users import UserOut, UserRole, LoginRequest, RegisterRequest, UpdateProfileRequest
 from app.schemas.tokens import TokenResponse, VerifyRequest, RefreshRequest, ForgotPasswordRequest, ResetPassword, ConfirmResetRequest
@@ -191,6 +193,24 @@ async def update_profile(body : UpdateProfileRequest,current_user : User = Depen
 		current_user.full_name = body.full_name
 	if body.phone is not None :
 		current_user.phone = body.phone
+	await db.commit()
+	return UserOut.model_validate(current_user)
+
+UPLOAD_DIR = "static/avatars"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.patch("/avatar",response_model=UserOut)
+async def upload_avatar(
+	file: UploadFile = File(...),
+	current_user: User = Depends(get_current_user),
+	db: AsyncSession = Depends(get_db)
+):
+	ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "jpg"
+	filename = f"{current_user.id}.{ext}"
+	filepath = os.path.join(UPLOAD_DIR, filename)
+	async with aiofiles.open(filepath, "wb") as f:
+		await f.write(await file.read())
+	current_user.avatar = f"/{UPLOAD_DIR}/{filename}"
 	await db.commit()
 	return UserOut.model_validate(current_user)
 

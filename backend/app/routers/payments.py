@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends,HTTPException,Query,File
+from fastapi import APIRouter, Depends,HTTPException,Query,File,Request
 from sqlalchemy import select,update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +11,12 @@ from app.models.payment import Payment,PaymentStatus
 from app.models.user import User
 from app.models.booking import Booking,BookingStatus
 from app.schemas.payment import PaymentCreate,PaymentOut
+import stripe
+from app.config import settings
 
-router = APIRouter(prefix="/api/payments",tags="Payments")
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+router = APIRouter(prefix="/api/payments",tags=["Payments"])
 
 @router.post("/{booking_id}",response_model=PaymentOut)
 async def create_payment(booking_id : int ,body : PaymentCreate, current_user : User = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
@@ -20,16 +24,30 @@ async def create_payment(booking_id : int ,body : PaymentCreate, current_user : 
 	booking_exist = result.scalar_one_or_none()
 	if not booking_exist:
 		raise HTTPException(404,"Booking not found")
+	intent = stripe.PaymentIntent.create(
+		amount = int(booking_exist.total_price * 100),
+		currency = "usd",
+		metadata = {"booking_id":str(booking_id)}
+	)
 	payment = Payment(
 		booking_id = booking_exist.id,
 		amount = booking_exist.total_price,
-		provider = body.provider,
+		provider = "stripe",
+		provider_payment_id = intent.id,
 		status = PaymentStatus.pending
 	)
 	db.add(payment)
 	await db.commit()
 	await db.refresh(payment)
-	return payment
+	return PaymentOut(
+		id=payment.id,
+		booking_id=payment.booking_id,
+		amount=payment.amount,
+		status=payment.status,
+		provider=payment.provider,
+		created_at=payment.created_at,
+		client_secret=intent.client_secret
+	)
 
 @router.get("/{id}",response_model=PaymentOut)
 async def check_payment(id:int,db:AsyncSession = Depends(get_db),current_user:User = Depends(get_current_user)):
@@ -47,3 +65,30 @@ async def get_all_payments(current_user : User = Depends(get_current_user),db : 
 		result = await db.execute(select(Payment).join(Payment.booking).where(Booking.user_id == current_user.id))
 	payment = result.scalars().all()
 	return payment
+
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+	payload = await request.body()
+	sig_header = request.headers.get("stripe-signature")
+
+	try:
+		event = stripe.Webhook.construct_event(
+			payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+		)
+	except ValueError:
+		raise HTTPException(400, "Invalid payload")
+	except stripe.error.SignatureVerificationError:
+		raise HTTPException(400, "Invalid signature")
+
+	if event["type"] == "payment_intent.succeeded":
+		intent = event["data"]["object"]
+		result = await db.execute(
+			select(Payment).where(Payment.provider_payment_id == intent["id"])
+		)
+		payment = result.scalar_one_or_none()
+		if payment:
+			payment.status = PaymentStatus.succeeded
+			await db.commit()
+
+	return {"status": "ok"}

@@ -16,7 +16,13 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
 
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+
+
 
     class Config:
         env_file = ".env"
