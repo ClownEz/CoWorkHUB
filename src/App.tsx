@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { HomePage } from '@/features/HomePage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
+import { VerifyPage } from '@/features/auth/VerifyPage'
 import { SpacesListPage } from '@/features/spaces/SpacesListPage'
 import { SpaceDetailPage } from '@/features/spaces/SpaceDetailPage'
 import { MyBookingsPage } from '@/features/bookings/MyBookingsPage'
@@ -34,6 +35,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify" element={<VerifyPage />} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />

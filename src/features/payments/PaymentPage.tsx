@@ -1,18 +1,26 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBooking } from '@/hooks/useBookings'
+import { paymentsApi } from '@/api'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { formatPrice } from '@/lib/utils'
 import { CreditCard, ArrowLeft } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export function PaymentPage() {
   const { bookingId } = useParams<{ bookingId: string }>()
   const navigate = useNavigate()
   const { data: booking } = useBooking(Number(bookingId))
 
-  const handlePay = () => {
-    // Mock payment redirect
-    window.location.href = `/api/payments/${bookingId}/create`
+  const handlePay = async () => {
+    try {
+      const payment = await paymentsApi.create(Number(bookingId))
+      toast.success('Платёж создан')
+      // Here you would use payment.client_secret with Stripe Elements
+      console.log('Payment created:', payment)
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Ошибка оплаты')
+    }
   }
 
   if (!booking) {

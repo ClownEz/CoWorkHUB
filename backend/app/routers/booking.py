@@ -60,7 +60,7 @@ async def get_book_by_id(id:int,db:AsyncSession = Depends(get_db),current_user:U
 
 @router.patch("/{id}/cancel",response_model=BookingOut)
 async def cancel_booking(id:int , current_user : User = Depends(get_current_user),db : AsyncSession = Depends(get_db)):
-	result = await db.execute(select(Booking).where(Booking.id == id))
+	result = await db.execute(select(Booking).where(Booking.id == id).options(selectinload(Booking.space)))
 	found = result.scalar_one_or_none()
 	if not found :
 		raise HTTPException(404,"Booking not found")
@@ -73,10 +73,10 @@ async def cancel_booking(id:int , current_user : User = Depends(get_current_user
 @router.get("/",response_model= list[BookingOut])
 async def get_all_bookings(current_user : User = Depends(get_current_user),db:AsyncSession = Depends(get_db)):
 	if current_user.role == "admin":
-		result = await db.execute(select(Booking))
+		result = await db.execute(select(Booking).options(selectinload(Booking.space)))
 	elif current_user.role == "manager":
-		result = await db.execute(select(Booking).join(Booking.space).where(Space.owner_id == current_user.id))
+		result = await db.execute(select(Booking).options(selectinload(Booking.space)).join(Booking.space).where(Space.owner_id == current_user.id))
 	else :
-		result = await db.execute(select(Booking).where(Booking.user_id == current_user.id))
+		result = await db.execute(select(Booking).options(selectinload(Booking.space)).where(Booking.user_id == current_user.id))
 	booking = result.scalars().all()
 	return booking

@@ -11,12 +11,31 @@ from app.dependincies import get_current_user
 from app.database import get_db
 from app.models.space import Space, Amenity, SpaceType,SpaceImage
 from app.schemas.space import SpaceOut,SpaceCreate,AvailabilitySlotOut,SpaceUpdate,AmenityOut
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.review import Review
 
 from app.models.booking import Booking
 
 router = APIRouter(prefix="/api/spaces", tags=["Spaces"])
+
+
+def _space_to_out(space: Space) -> dict:
+    return {
+        "id": space.id,
+        "name": space.name,
+        "type": space.type,
+        "capacity": space.capacity,
+        "price_per_hour": space.price_per_hour,
+        "description": space.description,
+        "address": space.address,
+        "is_active": space.is_active,
+        "owner_id": space.owner_id,
+        "owner_name": space.owner.full_name if space.owner else None,
+        "amenities": [{"id": a.id, "name": a.name, "icon": a.icon} for a in space.amenities],
+        "images": [{"id": i.id, "url": i.url, "position": i.position} for i in space.images],
+        "created_at": space.created_at,
+        "updated_at": space.updated_at,
+    }
 
 
 @router.get("/", response_model=list[SpaceOut])
@@ -49,6 +68,21 @@ async def list_of_spaces(
 	.order_by(order))
 	spaces = query.scalars().all()
 	return spaces
+
+
+@router.get("/admin/all", response_model=list[SpaceOut])
+async def admin_list_all_spaces(
+	current_user: User = Depends(get_current_user),
+	db: AsyncSession = Depends(get_db),
+):
+	if current_user.role != UserRole.admin:
+		raise HTTPException(status_code=403, detail="Admin only")
+	result = await db.execute(
+		select(Space)
+		.options(selectinload(Space.amenities), selectinload(Space.images), selectinload(Space.owner))
+		.order_by(Space.created_at.desc())
+	)
+	return [_space_to_out(s) for s in result.scalars().all()]
 
 @router.post("/", response_model=SpaceOut, status_code=201)
 async def create_space(body: SpaceCreate,

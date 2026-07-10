@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useSpaces } from '@/hooks/useSpaces'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { SpaceTypeBadge } from '@/components/ui/Badge'
@@ -8,6 +9,7 @@ import { Building2, Search, CalendarCheck, Shield, ArrowRight, Users, Clock } fr
 
 export function HomePage() {
   const { data: spaces } = useSpaces()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   return (
     <div className="space-y-16">
@@ -25,11 +27,13 @@ export function HomePage() {
               Найти коворкинг
             </Button>
           </Link>
-          <Link to="/register">
-            <Button variant="outline" size="lg">
-              Зарегистрироваться
-            </Button>
-          </Link>
+          {!isAuthenticated && (
+            <Link to="/register">
+              <Button variant="outline" size="lg">
+                Зарегистрироваться
+              </Button>
+            </Link>
+          )}
         </div>
       </section>
 

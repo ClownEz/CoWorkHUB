@@ -17,8 +17,17 @@ const spaceTypeLabels: Record<string, string> = {
 export function SpacesListPage() {
   const [type, setType] = useState('')
   const [capacity, setCapacity] = useState('')
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState('')
   const { data: spaces, isLoading } = useSpaces(
-    type ? { space_type: type, capacity: capacity ? Number(capacity) : undefined } : undefined,
+    type || capacity || search || sort
+      ? {
+          space_type: type || undefined,
+          capacity: capacity ? Number(capacity) : undefined,
+          search: search || undefined,
+          sort: sort || undefined,
+        }
+      : undefined,
   )
 
   return (
@@ -31,6 +40,15 @@ export function SpacesListPage() {
       <div className="mb-6 flex flex-wrap gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск по названию..."
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+        </div>
+        <div className="flex items-center gap-2">
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -53,6 +71,19 @@ export function SpacesListPage() {
             <option value="2">2+</option>
             <option value="5">5+</option>
             <option value="10">10+</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="">Сортировка</option>
+            <option value="price_asc">Цена ↑</option>
+            <option value="price_desc">Цена ↓</option>
+            <option value="newest">Сначала новые</option>
+            <option value="oldest">Сначала старые</option>
           </select>
         </div>
       </div>

@@ -24,14 +24,12 @@ export function useLogin() {
 
 export function useRegister() {
   const navigate = useNavigate()
-  const setAuth = useAuthStore((s) => s.setAuth)
 
   return useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
-    onSuccess: (data) => {
-      setAuth(data.user, data.access_token, data.refresh_token)
-      toast.success('Регистрация успешна')
-      navigate('/')
+    onSuccess: (_data, variables) => {
+      toast.success('Код подтверждения отправлен на почту')
+      navigate(`/verify?email=${encodeURIComponent(variables.email)}`)
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || 'Ошибка регистрации')

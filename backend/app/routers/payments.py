@@ -24,8 +24,11 @@ async def create_payment(booking_id : int ,body : PaymentCreate, current_user : 
 	booking_exist = result.scalar_one_or_none()
 	if not booking_exist:
 		raise HTTPException(404,"Booking not found")
+	amount_cents = int(booking_exist.total_price * 100)
+	if amount_cents < 50:
+		raise HTTPException(400, "Minimum payment amount is $0.50")
 	intent = stripe.PaymentIntent.create(
-		amount = int(booking_exist.total_price * 100),
+		amount = amount_cents,
 		currency = "usd",
 		metadata = {"booking_id":str(booking_id)}
 	)

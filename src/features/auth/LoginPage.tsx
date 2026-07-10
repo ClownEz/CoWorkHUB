@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useLogin } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader } from '@/components/ui/Card'
 import { Building2 } from 'lucide-react'
 
 export function LoginPage() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  if (isAuthenticated) return <Navigate to="/" replace />
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const login = useLogin()

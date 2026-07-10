@@ -1,13 +1,17 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useRegister } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader } from '@/components/ui/Card'
 import { Building2 } from 'lucide-react'
 
 export function RegisterPage() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  if (isAuthenticated) return <Navigate to="/" replace />
   const [email, setEmail] = useState('')
+  const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const register = useRegister()
@@ -15,7 +19,7 @@ export function RegisterPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) return
-    register.mutate({ email, password })
+    register.mutate({ email, password, full_name: fullName })
   }
 
   return (
@@ -30,6 +34,14 @@ export function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Имя"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Ваше имя"
+              required
+            />
             <Input
               label="Email"
               type="email"

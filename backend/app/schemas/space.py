@@ -28,6 +28,8 @@ class SpaceOut(BaseModel):
     description: str | None = None
     address: str | None = None
     is_active: bool
+    owner_id: int | None = None
+    owner_name: str | None = None
     amenities: list[AmenityOut] = []
     images: list[SpaceImageOut] = []
     created_at: datetime

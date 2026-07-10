@@ -36,7 +36,7 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     owned_spaces: Mapped[List["Space"]] = relationship(back_populates="owner")
-    bookings: Mapped[List["Booking"]] = relationship(back_populates="user")
-    reviews: Mapped[List["Review"]] = relationship(back_populates="user")
-    refresh_tokens: Mapped[List["RefreshToken"]] = relationship(back_populates="user")
-    password_reset_tokens: Mapped[List["PasswordResetToken"]] = relationship(back_populates="user")
+    bookings: Mapped[List["Booking"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    reviews: Mapped[List["Review"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens: Mapped[List["RefreshToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    password_reset_tokens: Mapped[List["PasswordResetToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
